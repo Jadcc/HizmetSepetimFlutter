@@ -1,6 +1,6 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'profile_gate.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -12,22 +12,26 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int currentIndex = 0;
 
-  final pages = const [
-    HomeScreen(),
-    Placeholder(),
-    Placeholder(),
-  ];
+  Widget _buildBody() {
+    switch (currentIndex) {
+      case 0:
+        return const HomeScreen();
+      case 1:
+        return const Placeholder();
+      case 2:
+        return const ProfileGate(); // 🔥 ARTIK SORUNSUZ
+      default:
+        return const HomeScreen();
+    }
+  }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF2F6F5),
       body: SafeArea(
         bottom: false,
-        child: IndexedStack(
-          index: currentIndex,
-          children: pages,
-        ),
+        child: _buildBody(), // ❌ IndexedStack YOK
       ),
       bottomNavigationBar: _GradientBottomBar(
         currentIndex: currentIndex,
@@ -101,7 +105,9 @@ class _GradientBottomBar extends StatelessWidget {
         child: Icon(
           icon,
           size: selected ? 30 : 24,
-          color: selected ? const Color(0xFF2A9D8F) : Colors.white70,
+          color: selected
+              ? const Color(0xFF2A9D8F)
+              : Colors.white70,
         ),
       ),
     );

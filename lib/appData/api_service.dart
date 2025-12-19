@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:convert';
 
 const String baseUrl = "http://92.249.61.58:8080/";
 
@@ -15,7 +16,7 @@ class Category {
 
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
-      id: int.parse(json["id"].toString()), // 🔥 KRİTİK
+      id: int.parse(json["id"].toString()),
       name: json["name"] ?? "",
     );
   }
@@ -37,23 +38,22 @@ class Product {
   });
 
   factory Product.fromJson(Map<String, dynamic> json) {
-  final rawImage = json["image_url"]?.toString() ?? "";
+    final rawImage = json["image_url"]?.toString() ?? "";
 
-  final imageUrl = rawImage.isEmpty
-      ? ""
-      : rawImage.startsWith("http")
-          ? rawImage
-          : "http://92.249.61.58$rawImage"; // 🔥 BACKEND’E UYARLAMA
+    final imageUrl = rawImage.isEmpty
+        ? ""
+        : rawImage.startsWith("http")
+            ? rawImage
+            : "http://92.249.61.58$rawImage";
 
-  return Product(
-    id: int.parse(json["id"].toString()),
-    name: json["name"]?.toString() ?? "Ürün",
-    imageUrl: imageUrl,
-    price: json["price"]?.toString() ?? "0",
-    description: json["description"]?.toString() ?? "",
-  );
-}
-
+    return Product(
+      id: int.parse(json["id"].toString()),
+      name: json["name"]?.toString() ?? "Ürün",
+      imageUrl: imageUrl,
+      price: json["price"]?.toString() ?? "0",
+      description: json["description"]?.toString() ?? "",
+    );
+  }
 }
 
 class SearchResponse {
@@ -77,6 +77,48 @@ class SearchResponse {
   }
 }
 
+// ===================== AUTH MODELLER =====================
+
+class LoginResponse {
+  final bool success;
+  final String token;
+  final Map<String, dynamic> user;
+
+  LoginResponse({
+    required this.success,
+    required this.token,
+    required this.user,
+  });
+
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    return LoginResponse(
+      success: json["success"] == true,
+      token: json["token"]?.toString() ?? "",
+      user: json["user"] ?? {},
+    );
+  }
+}
+
+class RegisterResponse {
+  final bool success;
+  final String message;
+  final String token;
+
+  RegisterResponse({
+    required this.success,
+    required this.message,
+    required this.token,
+  });
+
+  factory RegisterResponse.fromJson(Map<String, dynamic> json) {
+    return RegisterResponse(
+      success: json["success"] == true,
+      message: json["message"]?.toString() ?? "",
+      token: json["token"]?.toString() ?? "",
+    );
+  }
+}
+
 // ===================== API SERVICE =====================
 
 class ApiService {
@@ -90,14 +132,78 @@ class ApiService {
         receiveTimeout: const Duration(seconds: 10),
         headers: {
           "Accept": "application/json",
+          "Content-Type": "application/json",
         },
       ),
     );
   }
 
+  // -------- LOGIN --------
+  Future<LoginResponse?> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final res = await _dio.post(
+        "/login",
+        data: {
+          "email": email,
+          "password": password,
+        },
+      );
+
+      print("LOGIN RAW => ${res.data}");
+      print("LOGIN TYPE => ${res.data.runtimeType}");
+
+      final Map<String, dynamic> data =
+          res.data is String
+              ? Map<String, dynamic>.from(jsonDecode(res.data))
+              : Map<String, dynamic>.from(res.data);
+
+      return LoginResponse.fromJson(data);
+    } catch (e, s) {
+      print("LOGIN ERROR => $e");
+      print(s);
+      return null;
+    }
+  }
+
+  // -------- REGISTER --------
+  Future<RegisterResponse?> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String phone,
+    required String password,
+  }) async {
+    try {
+      final res = await _dio.post(
+        "/register",
+        data: {
+          "first_name": firstName,
+          "last_name": lastName,
+          "email": email,
+          "phone": phone,
+          "password": password,
+          "role": "ALICI",
+        },
+      );
+
+      final Map<String, dynamic> data =
+          res.data is String
+              ? Map<String, dynamic>.from(jsonDecode(res.data))
+              : Map<String, dynamic>.from(res.data);
+
+      return RegisterResponse.fromJson(data);
+    } catch (e) {
+      print("REGISTER ERROR => $e");
+      return null;
+    }
+  }
+
   // -------- KATEGORİLER --------
   Future<List<Category>> getCategories() async {
-    final res = await _dio.get("get_categories");
+    final res = await _dio.get("/get_categories");
 
     if (res.data != null && res.data["success"] == true) {
       return (res.data["categories"] as List)
@@ -108,34 +214,30 @@ class ApiService {
   }
 
   // -------- ÜRÜNLER --------
- Future<List<Product>> getProducts(int categoryId) async {
-  final res = await _dio.get(
-    "get_products",
-    queryParameters: {
-      "category_id": categoryId.toString(),
-    },
-  );
+  Future<List<Product>> getProducts(int categoryId) async {
+    final res = await _dio.get(
+      "/get_products",
+      queryParameters: {
+        "category_id": categoryId.toString(),
+      },
+    );
 
-  if (res.data != null && res.data["success"] == true) {
-    final list = res.data["products"];
+    if (res.data != null && res.data["success"] == true) {
+      final list = res.data["products"];
+      if (list == null) return [];
 
-    if (list == null) {
-      return []; // 🔥 ürün yok → boş liste
+      return (list as List)
+          .map((e) => Product.fromJson(e))
+          .toList();
     }
 
-    return (list as List)
-        .map((e) => Product.fromJson(e))
-        .toList();
+    return [];
   }
-
-  return [];
-}
-
 
   // -------- ARAMA --------
   Future<SearchResponse?> search(String query) async {
     final res = await _dio.get(
-      "search",
+      "/search",
       queryParameters: {"q": query},
     );
 
