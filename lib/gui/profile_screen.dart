@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../utils/auth_state.dart';
 import '../utils/token_store.dart';
+import 'editprofile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -35,10 +36,7 @@ class ProfileScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                   gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF2A9D8F),
-                      Color(0xFF3FB7A5),
-                    ],
+                    colors: [Color(0xFF2A9D8F), Color(0xFF3FB7A5)],
                   ),
                 ),
                 child: Column(
@@ -87,8 +85,16 @@ class ProfileScreen extends StatelessWidget {
               _Item(
                 icon: Icons.edit,
                 title: "Profili Düzenle",
-                onTap: () => _soon(context),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const EditProfileScreen(),
+                    ),
+                  );
+                },
               ),
+
               _Item(
                 icon: Icons.location_on,
                 title: "Adreslerim",
@@ -121,9 +127,9 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _soon(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Bu özellik yakında 👀")),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("Bu özellik yakında 👀")));
   }
 }
 

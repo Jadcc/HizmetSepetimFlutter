@@ -1,66 +1,75 @@
 import 'package:flutter/material.dart';
 import '../appData/api_service.dart';
-import '../utils/token_store.dart';
 import '../utils/auth_state.dart';
 import '../utils/user_store.dart';
-import 'signup_screen.dart';
-import 'main_layout.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _EditProfileScreenState extends State<EditProfileScreen> {
   final api = ApiService();
+
+  final nameCtrl = TextEditingController();
   final emailCtrl = TextEditingController();
-  final passCtrl = TextEditingController();
+  final phoneCtrl = TextEditingController();
 
   bool loading = false;
 
-  Future<void> _login() async {
+  @override
+  void initState() {
+    super.initState();
+
+    final user = userSession.value;
+    if (user != null) {
+      nameCtrl.text = user.name;
+      emailCtrl.text = user.email;
+      phoneCtrl.text = user.phone ?? "";
+    }
+  }
+
+  Future<void> _save() async {
     setState(() => loading = true);
 
-    final res = await api.login(
-      email: emailCtrl.text.trim(),
-      password: passCtrl.text,
+    try {
+      final res = await api.updateProfile(
+        name: nameCtrl.text.trim(),
+        email: emailCtrl.text.trim(),
+        phone: phoneCtrl.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      if (res == true) {
+        // 🔁 LOCAL USER UPDATE
+        final updated = UserSession(
+          name: nameCtrl.text.trim(),
+          email: emailCtrl.text.trim(),
+          phone: phoneCtrl.text.trim(),
+          role: userSession.value!.role,
+        );
+
+        userSession.value = updated;
+        await UserStore.save(updated);
+
+        Navigator.pop(context);
+      } else {
+        _error("Profil güncellenemedi");
+      }
+    } catch (e) {
+      _error("Bir hata oluştu");
+    }
+
+    setState(() => loading = false);
+  }
+
+  void _error(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
     );
-
-    if (!mounted) return;
-
-    if (res != null && res.token.isNotEmpty) {
-      // 🔐 TOKEN KAYDET
-      await TokenStore.save(res.token);
-
-      // 👤 USER OLUŞTUR
-      final user = UserSession(
-        name: res.user["email"]?.toString().split("@").first ?? "Kullanıcı",
-        email: res.user["email"] ?? "",
-        role: res.user["role"] ?? "ALICI",
-        phone: res.user["phone"] ?? "",
-      );
-
-      // 🔥 STATE + DISK
-      userSession.value = user;
-      authState.value = true;
-      await UserStore.save(user);
-
-      // 🔥 ROOT'A DÖN (DÖNME BUG'I BİTER)
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const MainLayout()),
-        (route) => false,
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("E-posta veya şifre hatalı")),
-      );
-    }
-
-    if (mounted) {
-      setState(() => loading = false);
-    }
   }
 
   @override
@@ -68,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 🔥 Gradient background
+          // 🌈 Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -79,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // 🔙 iOS tarzı geri butonu
+          // 🔙 Back
           Positioned(
             top: 48,
             left: 16,
@@ -88,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.25),
+                  color: Colors.white.withOpacity(0.25),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -100,14 +109,14 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
 
-          // 🔥 Login card
+          // 🧾 Card
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.96),
+                  color: Colors.white.withOpacity(0.96),
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: const [
                     BoxShadow(
@@ -121,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      "Tekrar Hoş Geldin 👋",
+                      "Profili Düzenle",
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
@@ -129,24 +138,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 6),
                     const Text(
-                      "HizmetSepetim hesabına giriş yap",
+                      "Bilgilerini güncelle",
                       style: TextStyle(color: Colors.black54),
                     ),
 
                     const SizedBox(height: 32),
 
-                    _input(
-                      controller: emailCtrl,
-                      label: "E-posta",
-                      icon: Icons.mail_outline,
-                    ),
+                    _input("Ad Soyad", nameCtrl, Icons.person_outline),
                     const SizedBox(height: 16),
-                    _input(
-                      controller: passCtrl,
-                      label: "Şifre",
-                      icon: Icons.lock_outline,
-                      obscure: true,
-                    ),
+                    _input("E-posta", emailCtrl, Icons.mail_outline),
+                    const SizedBox(height: 16),
+                    _input("Telefon", phoneCtrl, Icons.phone_outlined),
 
                     const SizedBox(height: 28),
 
@@ -154,7 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: loading ? null : _login,
+                        onPressed: loading ? null : _save,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2A9D8F),
                           shape: RoundedRectangleBorder(
@@ -162,36 +164,17 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         child: loading
-                            ? const CircularProgressIndicator(color: Colors.white)
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
                             : const Text(
-                                "Giriş Yap",
+                                "Kaydet",
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
+                                  color: Colors.white,
                                 ),
                               ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    Center(
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SignUpScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          "Hesabın yok mu? Kayıt Ol",
-                          style: TextStyle(
-                            color: Color(0xFF2A9D8F),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
                     ),
                   ],
@@ -204,15 +187,13 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _input({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    bool obscure = false,
-  }) {
+  Widget _input(
+    String label,
+    TextEditingController ctrl,
+    IconData icon,
+  ) {
     return TextField(
-      controller: controller,
-      obscureText: obscure,
+      controller: ctrl,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),

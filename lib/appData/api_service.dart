@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'dart:convert';
+import '../utils/token_store.dart';
 
 const String baseUrl = "http://92.249.61.58:8080/";
 
@@ -167,6 +168,31 @@ class ApiService {
       return null;
     }
   }
+Future<bool> updateProfile({
+  required String name,
+  required String email,
+  required String phone,
+}) async {
+  final token = await TokenStore.read();
+
+  final res = await _dio.put(
+    "/update_profile",
+    options: Options(
+      headers: {
+        "Authorization": "Bearer $token", // 🔥 KRİTİK
+        "Content-Type": "application/json",
+      },
+    ),
+    data: {
+      "name": name,
+      "email": email,
+      "phone": phone,
+    },
+  );
+
+  return res.data != null && res.data["success"] == true;
+}
+
 
   // -------- REGISTER --------
   Future<RegisterResponse?> register({
