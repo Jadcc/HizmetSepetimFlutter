@@ -2,17 +2,25 @@ import 'package:flutter/material.dart';
 import 'home_screen.dart';
 import 'profile_gate.dart';
 import 'booking_screen.dart';
-import 'profile_screen.dart';
+import 'wallet_screen.dart';
 
 class MainLayout extends StatefulWidget {
-  const MainLayout({super.key});
+  final int initialIndex;
+
+  const MainLayout({super.key, this.initialIndex = 0});
 
   @override
   State<MainLayout> createState() => _MainLayoutState();
 }
 
 class _MainLayoutState extends State<MainLayout> {
-  int currentIndex = 0;
+  late int currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.initialIndex;
+  }
 
   Widget _buildBody() {
     switch (currentIndex) {
@@ -21,7 +29,7 @@ class _MainLayoutState extends State<MainLayout> {
       case 1:
         return const BookingScreen();
       case 2:
-        return const ProfileGate();
+        return const WalletScreen();
       case 3:
         return const ProfileGate();
       default:

@@ -260,6 +260,32 @@ class Booking {
   }
 }
 
+class WalletTransaction {
+  final int id;
+  final double amount;
+  final String type;
+  final String description;
+  final String createdAt;
+
+  WalletTransaction({
+    required this.id,
+    required this.amount,
+    required this.type,
+    required this.description,
+    required this.createdAt,
+  });
+
+  factory WalletTransaction.fromJson(Map<String, dynamic> json) {
+    return WalletTransaction(
+      id: int.parse(json["id"]?.toString() ?? "0"),
+      amount: double.tryParse(json["amount"]?.toString() ?? "0") ?? 0.0,
+      type: json["type"]?.toString() ?? "",
+      description: json["description"]?.toString() ?? "",
+      createdAt: json["created_at"]?.toString() ?? "",
+    );
+  }
+}
+
 class ApiService {
   final Dio _dio;
 
@@ -378,26 +404,35 @@ class ApiService {
 
   Future<bool> createOrder({
     required int addressId,
+    required int categoryId,
     required String productName,
     required double price,
     required double totalPrice,
     required String appointment,
     required String addons,
+    required double walletPayment,
+    required double cardPayment,
+    required String paymentMethod,
   }) async {
     try {
       final res = await _dio.post(
-        "/create_order",
+        "/create_order_with_payment",
         data: {
           "address_id": addressId,
+          "category_id": categoryId,
           "product_name": productName,
           "price": price,
           "total_price": totalPrice,
           "appointment_datetime": appointment,
           "addons": addons,
+          "wallet_payment": walletPayment,
+          "card_payment": cardPayment,
+          "payment_method": paymentMethod,
         },
       );
       return res.data["success"] == true;
-    } catch (_) {
+    } catch (e) {
+      debugPrint("❌ createOrder error: $e");
       return false;
     }
   }
@@ -514,6 +549,52 @@ class ApiService {
     } catch (e) {
       debugPrint("❌ getBookings error: $e");
       return [];
+    }
+  }
+
+  Future<double> getWalletBalance() async {
+    try {
+      final res = await _dio.get("/wallet/balance");
+      final data = _asMap(res.data);
+
+      if (data["success"] == true) {
+        return double.tryParse(data["balance"]?.toString() ?? "0") ?? 0.0;
+      }
+      return 0.0;
+    } catch (e) {
+      debugPrint("❌ getWalletBalance error: $e");
+      return 0.0;
+    }
+  }
+
+  Future<List<WalletTransaction>> getWalletTransactions() async {
+    try {
+      final res = await _dio.get("/wallet/transactions");
+      final data = _asMap(res.data);
+
+      if (data["success"] == true) {
+        final list = (data["transactions"] as List? ?? []);
+        return list.map((e) => WalletTransaction.fromJson(e)).toList();
+      }
+      return [];
+    } catch (e) {
+      debugPrint("❌ getWalletTransactions error: $e");
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>?> redeemPromoCode(String code) async {
+    try {
+      final res = await _dio.post("/redeem_promo", data: {"code": code});
+      final data = _asMap(res.data);
+
+      if (data["success"] == true) {
+        return data;
+      }
+      return data;
+    } catch (e) {
+      debugPrint("❌ redeemPromoCode error: $e");
+      return {"success": false, "message": "Kod kullanılamadı"};
     }
   }
 }

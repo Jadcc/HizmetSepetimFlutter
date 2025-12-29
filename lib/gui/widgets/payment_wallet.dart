@@ -4,11 +4,15 @@ import '../../theme/colors.dart';
 class PaymentWallet extends StatelessWidget {
   final double balance;
   final bool enabled;
+  final bool useWallet;
+  final void Function(bool) onChanged;
 
   const PaymentWallet({
     super.key,
     required this.balance,
     required this.enabled,
+    required this.useWallet,
+    required this.onChanged,
   });
 
   @override
@@ -28,15 +32,22 @@ class PaymentWallet extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("Bakiye"),
-              Text("₺${balance.toStringAsFixed(2)}"),
+              Text(
+                "₺${balance.toStringAsFixed(2)}",
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: primary,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Opacity(
             opacity: enabled ? 1 : 0.5,
             child: SwitchListTile(
-              value: false,
-              onChanged: enabled ? (_) {} : null,
+              value: useWallet,
+              onChanged: enabled ? onChanged : null,
               title: const Text("Cüzdan bakiyesi kullan"),
             ),
           ),

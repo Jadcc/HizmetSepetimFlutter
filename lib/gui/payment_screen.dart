@@ -5,6 +5,7 @@ import '../../theme/colors.dart';
 import 'widgets/payment_addons.dart';
 import 'widgets/payment_datetime.dart';
 import 'widgets/payment_wallet.dart';
+import 'main_layout.dart';
 
 class PaymentScreen extends StatefulWidget {
   final String productName;
@@ -38,17 +39,38 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final cvv = TextEditingController();
 
   bool loading = false;
+  bool useWallet = false;
+  double walletBalance = 0.0;
+  bool loadingBalance = true;
 
   @override
   void initState() {
     super.initState();
     _loadAddons();
+    _loadWalletBalance();
   }
 
   Future<void> _loadAddons() async {
     final list = await api.getAddons();
     if (!mounted) return;
     setState(() => addons = list);
+  }
+
+  Future<void> _loadWalletBalance() async {
+    try {
+      final balance = await api.getWalletBalance();
+      if (!mounted) return;
+      setState(() {
+        walletBalance = balance;
+        loadingBalance = false;
+      });
+    } catch (e) {
+      debugPrint("WALLET BALANCE ERROR => $e");
+      if (!mounted) return;
+      setState(() {
+        loadingBalance = false;
+      });
+    }
   }
 
   double get totalPrice {
@@ -59,6 +81,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
     }
     return total;
+  }
+
+  double get walletPaymentAmount {
+    if (!useWallet) return 0.0;
+    return walletBalance >= totalPrice ? totalPrice : walletBalance;
+  }
+
+  double get cardPaymentAmount {
+    if (!useWallet) return totalPrice;
+    final walletUsed = walletPaymentAmount;
+    return totalPrice - walletUsed;
   }
 
   String get addonsPayload {
@@ -107,13 +140,86 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
           const SizedBox(height: 16),
 
-          const PaymentWallet(balance: 0, enabled: false),
+          loadingBalance
+              ? const Center(child: CircularProgressIndicator(color: primary))
+              : PaymentWallet(
+                  balance: walletBalance,
+                  enabled: true,
+                  useWallet: useWallet,
+                  onChanged: (value) {
+                    setState(() {
+                      useWallet = value;
+                    });
+                  },
+                ),
+          if (useWallet) ...[const SizedBox(height: 12), _paymentBreakdown()],
           const SizedBox(height: 16),
 
           _cardForm(),
           const SizedBox(height: 24),
 
           _payButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _paymentBreakdown() {
+    final walletUsed = walletPaymentAmount;
+    final cardNeeded = cardPaymentAmount;
+    final isFullyPaid = walletUsed >= totalPrice;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: _cardBox(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Ödeme Dağılımı",
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: textDark,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _row("Toplam", "₺${totalPrice.toStringAsFixed(2)}"),
+          if (walletUsed > 0) ...[
+            const SizedBox(height: 8),
+            _row(
+              "Cüzdan",
+              "-₺${walletUsed.toStringAsFixed(2)}",
+              bold: true,
+              color: Colors.green,
+            ),
+          ],
+          if (cardNeeded > 0) ...[
+            const SizedBox(height: 8),
+            _row(
+              "Kart ile Ödenecek",
+              "₺${cardNeeded.toStringAsFixed(2)}",
+              bold: true,
+              color: Colors.orange,
+            ),
+          ] else if (isFullyPaid && walletUsed > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                const SizedBox(width: 4),
+                Text(
+                  "Cüzdan ile tamamen ödenecek",
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -141,15 +247,52 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _cardForm() {
+    final showCardForm =
+        !useWallet || (useWallet && walletBalance < totalPrice);
+
+    if (!showCardForm) {
+      return const SizedBox.shrink();
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardBox(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              const Text(
+                "Kart Bilgileri",
+                style: TextStyle(fontWeight: FontWeight.w800),
+              ),
+              if (useWallet && cardPaymentAmount > 0) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    "₺${cardPaymentAmount.toStringAsFixed(2)} ödenecek",
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
           const Text(
-            "Kart Bilgileri (Opsiyonel)",
-            style: TextStyle(fontWeight: FontWeight.w800),
+            "Kart bilgileri opsiyoneldir",
+            style: TextStyle(fontSize: 12, color: textSoft),
           ),
           const SizedBox(height: 16),
 
@@ -235,24 +378,42 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> _pay() async {
     setState(() => loading = true);
 
+    final walletPayment = useWallet ? walletPaymentAmount : 0.0;
+    final cardPayment = useWallet ? cardPaymentAmount : totalPrice;
+
+    String paymentMethod;
+    if (walletPayment > 0 && cardPayment > 0) {
+      paymentMethod = "mixed";
+    } else if (walletPayment > 0) {
+      paymentMethod = "wallet";
+    } else {
+      paymentMethod = "card";
+    }
+
     final ok = await api.createOrder(
       addressId: widget.addressId,
+      categoryId: widget.categoryId,
       productName: widget.productName,
       price: widget.price,
       totalPrice: totalPrice,
       appointment: appointmentPayload,
       addons: addonsPayload,
+      walletPayment: walletPayment,
+      cardPayment: cardPayment,
+      paymentMethod: paymentMethod,
     );
 
     setState(() => loading = false);
 
     if (!mounted) return;
 
-    ok
-        ? _showSuccess()
-        : ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Sipariş oluşturulamadı")),
-          );
+    if (ok) {
+      _showSuccess();
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Sipariş oluşturulamadı")));
+    }
   }
 
   void _showSuccess() {
@@ -276,9 +437,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
-                Navigator.pop(context);
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (_) => const MainLayout(initialIndex: 1),
+                  ),
+                  (route) => false,
+                );
               },
-              child: const Text("Tamam"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                "Randevularımı Gör",
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ],
         ),
@@ -298,13 +480,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     ],
   );
 
-  Widget _row(String l, String r, {bool bold = false}) => Row(
+  Widget _row(String l, String r, {bool bold = false, Color? color}) => Row(
     mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
       Text(l, style: const TextStyle(color: textSoft)),
       Text(
         r,
-        style: TextStyle(fontWeight: bold ? FontWeight.w800 : FontWeight.w500),
+        style: TextStyle(
+          fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+          color: color,
+        ),
       ),
     ],
   );
